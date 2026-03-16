@@ -31,13 +31,6 @@ WELCOME_TEXT = (
 )
 
 
-async def send_admin_log(message: Message, text: str) -> None:
-    await message.bot.send_message(
-        chat_id=ADMIN_LOG_CHAT_ID,
-        text=text
-    )
-
-
 def request_admin_keyboard(user_id: int):
     builder = InlineKeyboardBuilder()
     builder.button(
@@ -129,32 +122,46 @@ async def cb_admin_approve_all(callback: CallbackQuery) -> None:
         await callback.answer("У тебе немає прав для цієї дії", show_alert=True)
         return
 
-    _, user_id_str = callback.data.split(":", 1)
-    user_id = int(user_id_str)
-
-    set_user_status(
-        telegram_id=user_id,
-        status="active",
-        access_mode="all",
-        processed_by=str(callback.from_user.id)
-    )
-
     try:
-        await callback.bot.send_message(
-            chat_id=user_id,
-            text=(
-                "✅ Доступ до всього контенту надано.\n\n"
-                "Тепер відкрий бота та натисни /start або кнопку 'Мої групи'."
-            )
-        )
-    except Exception:
-        pass
+        _, user_id_str = callback.data.split(":", 1)
+        user_id = int(user_id_str)
 
-    old_text = callback.message.text or ""
-    await callback.message.edit_text(
-        old_text + "\n\n✅ Доступ до всього контенту надано"
-    )
-    await callback.answer("Доступ надано")
+        set_user_status(
+            telegram_id=user_id,
+            status="active",
+            access_mode="all",
+            processed_by=str(callback.from_user.id)
+        )
+
+        try:
+            await callback.bot.send_message(
+                chat_id=user_id,
+                text=(
+                    "✅ Доступ до всього контенту надано.\n\n"
+                    "Тепер відкрий бота та натисни /start або кнопку 'Мої групи'."
+                )
+            )
+        except Exception as e:
+            print(f"Failed to notify approved user {user_id}: {e}")
+
+        old_text = callback.message.text or ""
+        new_text = old_text + "\n\n✅ Доступ до всього контенту надано"
+
+        try:
+            await callback.message.edit_text(new_text, reply_markup=None)
+        except Exception as e:
+            print(f"Failed to edit approve message: {e}")
+            try:
+                await callback.message.edit_reply_markup(reply_markup=None)
+            except Exception as e2:
+                print(f"Failed to clear approve buttons: {e2}")
+            await callback.message.answer("✅ Доступ до всього контенту надано")
+
+        await callback.answer("Доступ надано")
+
+    except Exception as e:
+        print(f"admin_approve_all error: {e}")
+        await callback.answer(f"Помилка: {e}", show_alert=True)
 
 
 @router.callback_query(F.data.startswith("admin_reject:"))
@@ -163,32 +170,46 @@ async def cb_admin_reject(callback: CallbackQuery) -> None:
         await callback.answer("У тебе немає прав для цієї дії", show_alert=True)
         return
 
-    _, user_id_str = callback.data.split(":", 1)
-    user_id = int(user_id_str)
-
-    set_user_status(
-        telegram_id=user_id,
-        status="rejected",
-        access_mode="none",
-        processed_by=str(callback.from_user.id)
-    )
-
     try:
-        await callback.bot.send_message(
-            chat_id=user_id,
-            text=(
-                "❌ Запит на доступ відхилено.\n\n"
-                "Якщо це помилка — звернись до тренера."
-            )
-        )
-    except Exception:
-        pass
+        _, user_id_str = callback.data.split(":", 1)
+        user_id = int(user_id_str)
 
-    old_text = callback.message.text or ""
-    await callback.message.edit_text(
-        old_text + "\n\n❌ Запит відхилено"
-    )
-    await callback.answer("Запит відхилено")
+        set_user_status(
+            telegram_id=user_id,
+            status="rejected",
+            access_mode="none",
+            processed_by=str(callback.from_user.id)
+        )
+
+        try:
+            await callback.bot.send_message(
+                chat_id=user_id,
+                text=(
+                    "❌ Запит на доступ відхилено.\n\n"
+                    "Якщо це помилка — звернись до тренера."
+                )
+            )
+        except Exception as e:
+            print(f"Failed to notify rejected user {user_id}: {e}")
+
+        old_text = callback.message.text or ""
+        new_text = old_text + "\n\n❌ Запит відхилено"
+
+        try:
+            await callback.message.edit_text(new_text, reply_markup=None)
+        except Exception as e:
+            print(f"Failed to edit reject message: {e}")
+            try:
+                await callback.message.edit_reply_markup(reply_markup=None)
+            except Exception as e2:
+                print(f"Failed to clear reject buttons: {e2}")
+            await callback.message.answer("❌ Запит відхилено")
+
+        await callback.answer("Запит відхилено")
+
+    except Exception as e:
+        print(f"admin_reject error: {e}")
+        await callback.answer(f"Помилка: {e}", show_alert=True)
 
 
 @router.callback_query(F.data == "my_groups")
