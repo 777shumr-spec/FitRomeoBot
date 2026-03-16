@@ -1,7 +1,8 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from config import ADMIN_LOG_CHAT_ID
+from config import ADMIN_LOG_CHAT_ID, SUPER_ADMIN_ID
 from keyboards import (
     groups_keyboard,
     start_keyboard,
@@ -15,6 +16,7 @@ from sheets_api import (
     get_subgroups_by_group,
     get_user_status,
     get_videos_by_subgroup,
+    set_user_status,
     upsert_user,
     write_log,
 )
@@ -34,6 +36,20 @@ async def send_admin_log(message: Message, text: str) -> None:
         chat_id=ADMIN_LOG_CHAT_ID,
         text=text
     )
+
+
+def request_admin_keyboard(user_id: int):
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="✅ Дати доступ до всього",
+        callback_data=f"admin_approve_all:{user_id}"
+    )
+    builder.button(
+        text="❌ Відхилити",
+        callback_data=f"admin_reject:{user_id}"
+    )
+    builder.adjust(1)
+    return builder.as_markup()
 
 
 def _has_access(status_result: dict) -> bool:
@@ -96,7 +112,8 @@ async def cb_request_access(callback: CallbackQuery) -> None:
             f"telegram_id: {callback.from_user.id}\n"
             f"#client_{callback.from_user.id}\n"
             f"#request_access"
-        )
+        ),
+        reply_markup=request_admin_keyboard(callback.from_user.id)
     )
 
     await callback.message.answer(
@@ -104,6 +121,74 @@ async def cb_request_access(callback: CallbackQuery) -> None:
         "Очікуй підтвердження."
     )
     await callback.answer("Запит відправлено")
+
+
+@router.callback_query(F.data.startswith("admin_approve_all:"))
+async def cb_admin_approve_all(callback: CallbackQuery) -> None:
+    if callback.from_user.id != SUPER_ADMIN_ID:
+        await callback.answer("У тебе немає прав для цієї дії", show_alert=True)
+        return
+
+    _, user_id_str = callback.data.split(":", 1)
+    user_id = int(user_id_str)
+
+    set_user_status(
+        telegram_id=user_id,
+        status="active",
+        access_mode="all",
+        processed_by=str(callback.from_user.id)
+    )
+
+    try:
+        await callback.bot.send_message(
+            chat_id=user_id,
+            text=(
+                "✅ Доступ до всього контенту надано.\n\n"
+                "Тепер відкрий бота та натисни /start або кнопку 'Мої групи'."
+            )
+        )
+    except Exception:
+        pass
+
+    old_text = callback.message.text or ""
+    await callback.message.edit_text(
+        old_text + "\n\n✅ Доступ до всього контенту надано"
+    )
+    await callback.answer("Доступ надано")
+
+
+@router.callback_query(F.data.startswith("admin_reject:"))
+async def cb_admin_reject(callback: CallbackQuery) -> None:
+    if callback.from_user.id != SUPER_ADMIN_ID:
+        await callback.answer("У тебе немає прав для цієї дії", show_alert=True)
+        return
+
+    _, user_id_str = callback.data.split(":", 1)
+    user_id = int(user_id_str)
+
+    set_user_status(
+        telegram_id=user_id,
+        status="rejected",
+        access_mode="none",
+        processed_by=str(callback.from_user.id)
+    )
+
+    try:
+        await callback.bot.send_message(
+            chat_id=user_id,
+            text=(
+                "❌ Запит на доступ відхилено.\n\n"
+                "Якщо це помилка — звернись до тренера."
+            )
+        )
+    except Exception:
+        pass
+
+    old_text = callback.message.text or ""
+    await callback.message.edit_text(
+        old_text + "\n\n❌ Запит відхилено"
+    )
+    await callback.answer("Запит відхилено")
 
 
 @router.callback_query(F.data == "my_groups")
