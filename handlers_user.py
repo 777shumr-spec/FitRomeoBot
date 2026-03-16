@@ -223,7 +223,7 @@ async def cb_watched(callback: CallbackQuery) -> None:
     )
 
     await callback.answer("Перегляд зафіксовано")
-    await callback.message.delete()
+    await callback.message.answer("✅ Відмітка 'Переглянув' збережена.")
 
 
 @router.callback_query(F.data.startswith("done:"))
@@ -240,4 +240,5 @@ async def cb_done(callback: CallbackQuery) -> None:
     )
 
     await callback.answer("Виконання зафіксовано")
-    await callback.message.answer("🏁 Відмітка 'Виконав' збережена.")
+    await callback.message.delete()
+    await callback.message.answer("🏁 Відмітка 'Виконав' збережена. Продовжуй.")
