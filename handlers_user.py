@@ -18,7 +18,7 @@ from sheets_api import (
 router = Router()
 
 WELCOME_TEXT = (
-    "Привіт, вітаю тебе, якщо ти читаєш це, то ти майже обраний, "
+    "Вітаю тебе, якщо ти читаєш це, то ти майже обраний, "
     "і зараз тобі потрібно зробити лише маленький крок до великої перемоги!\n\n"
     "Натискай запросити доступ до цінного контенту, за допомогою якого "
     "ти точно досягнеш результату!"
@@ -111,7 +111,7 @@ async def cb_group(callback: CallbackQuery) -> None:
     subgroups = get_subgroups_by_group(group_id).get("items", [])
 
     if not subgroups:
-        await callback.answer("У цій групі поки немає підгруп", show_alert=True)
+        await callback.answer("У цій групі поки немає вправ", show_alert=True)
         return
 
     await callback.message.edit_text(
@@ -128,7 +128,7 @@ async def cb_back_to_group(callback: CallbackQuery) -> None:
     subgroups = get_subgroups_by_group(group_id).get("items", [])
 
     if not subgroups:
-        await callback.answer("У цій групі поки немає підгруп", show_alert=True)
+        await callback.answer("У цій групі поки немає вправ", show_alert=True)
         return
 
     await callback.message.edit_text(
