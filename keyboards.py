@@ -56,7 +56,7 @@ def videos_keyboard(group_id: str, subgroup_id: str, videos: list[dict]) -> Inli
             callback_data=f"video:{group_id}:{subgroup_id}:{video_id}"
         )
 
-    builder.button(text="⬅️ До підгруп", callback_data=f"back_to_group:{group_id}")
+    builder.button(text="⬅️ До вправ", callback_data=f"back_to_group:{group_id}")
     builder.adjust(1)
     return builder.as_markup()
 
