@@ -153,3 +153,11 @@ async def cb_subgroup(callback: CallbackQuery) -> None:
         reply_markup=videos_keyboard(group_id, subgroup_id, videos)
     )
     await callback.answer()
+
+@router.message(F.video)
+async def debug_video_file_id(message: Message) -> None:
+    if message.chat.id != -5122927435:
+        return
+
+    file_id = message.video.file_id
+    await message.answer(f"VIDEO_FILE_ID:\n{file_id}")
