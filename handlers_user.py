@@ -206,3 +206,38 @@ async def cb_video(callback: CallbackQuery) -> None:
     )
 
     await callback.answer()
+
+
+
+@router.callback_query(F.data.startswith("watched:"))
+async def cb_watched(callback: CallbackQuery) -> None:
+    _, group_id, subgroup_id, video_id = callback.data.split(":", 3)
+
+    write_log(
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username or "",
+        group_id=group_id,
+        subgroup_id=subgroup_id,
+        video_id=video_id,
+        action="watched"
+    )
+
+    await callback.answer("Перегляд зафіксовано")
+    await callback.message.delete()
+
+
+@router.callback_query(F.data.startswith("done:"))
+async def cb_done(callback: CallbackQuery) -> None:
+    _, group_id, subgroup_id, video_id = callback.data.split(":", 3)
+
+    write_log(
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username or "",
+        group_id=group_id,
+        subgroup_id=subgroup_id,
+        video_id=video_id,
+        action="done"
+    )
+
+    await callback.answer("Виконання зафіксовано")
+    await callback.message.answer("🏁 Відмітка 'Виконав' збережена.")
