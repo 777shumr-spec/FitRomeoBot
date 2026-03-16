@@ -1,6 +1,7 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message
 
+from config import ADMIN_LOG_CHAT_ID
 from keyboards import (
     groups_keyboard,
     start_keyboard,
@@ -26,6 +27,13 @@ WELCOME_TEXT = (
     "Натискай запросити доступ до цінного контенту, за допомогою якого "
     "ти точно досягнеш результату!"
 )
+
+
+async def send_admin_log(message: Message, text: str) -> None:
+    await message.bot.send_message(
+        chat_id=ADMIN_LOG_CHAT_ID,
+        text=text
+    )
 
 
 def _has_access(status_result: dict) -> bool:
@@ -77,6 +85,18 @@ async def cb_request_access(callback: CallbackQuery) -> None:
         username=callback.from_user.username or "",
         first_name=callback.from_user.first_name or "",
         last_name=callback.from_user.last_name or "",
+    )
+
+    await callback.bot.send_message(
+        chat_id=ADMIN_LOG_CHAT_ID,
+        text=(
+            "🔐 Новий запит доступу\n\n"
+            f"👤 {callback.from_user.first_name or ''} {callback.from_user.last_name or ''}\n"
+            f"username: @{callback.from_user.username or 'немає'}\n"
+            f"telegram_id: {callback.from_user.id}\n"
+            f"#client_{callback.from_user.id}\n"
+            f"#request_access"
+        )
     )
 
     await callback.message.answer(
@@ -157,6 +177,7 @@ async def cb_subgroup(callback: CallbackQuery) -> None:
     )
     await callback.answer()
 
+
 @router.message(F.video)
 async def debug_video_file_id(message: Message) -> None:
     if message.chat.id != -5122927435:
@@ -205,8 +226,25 @@ async def cb_video(callback: CallbackQuery) -> None:
         action="opened"
     )
 
-    await callback.answer()
+    await callback.bot.send_message(
+        chat_id=ADMIN_LOG_CHAT_ID,
+        text=(
+            "🎬 Клієнт відкрив відео\n\n"
+            f"👤 {callback.from_user.first_name or ''} {callback.from_user.last_name or ''}\n"
+            f"username: @{callback.from_user.username or 'немає'}\n"
+            f"telegram_id: {callback.from_user.id}\n"
+            f"group_id: {group_id}\n"
+            f"subgroup_id: {subgroup_id}\n"
+            f"video_id: {video_id}\n"
+            f"#client_{callback.from_user.id}\n"
+            f"#group_{group_id}\n"
+            f"#subgroup_{subgroup_id}\n"
+            f"#video_{video_id}\n"
+            f"#opened"
+        )
+    )
 
+    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("watched:"))
@@ -220,6 +258,24 @@ async def cb_watched(callback: CallbackQuery) -> None:
         subgroup_id=subgroup_id,
         video_id=video_id,
         action="watched"
+    )
+
+    await callback.bot.send_message(
+        chat_id=ADMIN_LOG_CHAT_ID,
+        text=(
+            "✅ Клієнт переглянув відео\n\n"
+            f"👤 {callback.from_user.first_name or ''} {callback.from_user.last_name or ''}\n"
+            f"username: @{callback.from_user.username or 'немає'}\n"
+            f"telegram_id: {callback.from_user.id}\n"
+            f"group_id: {group_id}\n"
+            f"subgroup_id: {subgroup_id}\n"
+            f"video_id: {video_id}\n"
+            f"#client_{callback.from_user.id}\n"
+            f"#group_{group_id}\n"
+            f"#subgroup_{subgroup_id}\n"
+            f"#video_{video_id}\n"
+            f"#watched"
+        )
     )
 
     await callback.answer("Перегляд зафіксовано")
@@ -237,6 +293,24 @@ async def cb_done(callback: CallbackQuery) -> None:
         subgroup_id=subgroup_id,
         video_id=video_id,
         action="done"
+    )
+
+    await callback.bot.send_message(
+        chat_id=ADMIN_LOG_CHAT_ID,
+        text=(
+            "🏁 Клієнт виконав вправу\n\n"
+            f"👤 {callback.from_user.first_name or ''} {callback.from_user.last_name or ''}\n"
+            f"username: @{callback.from_user.username or 'немає'}\n"
+            f"telegram_id: {callback.from_user.id}\n"
+            f"group_id: {group_id}\n"
+            f"subgroup_id: {subgroup_id}\n"
+            f"video_id: {video_id}\n"
+            f"#client_{callback.from_user.id}\n"
+            f"#group_{group_id}\n"
+            f"#subgroup_{subgroup_id}\n"
+            f"#video_{video_id}\n"
+            f"#done"
+        )
     )
 
     await callback.answer("Виконання зафіксовано")
