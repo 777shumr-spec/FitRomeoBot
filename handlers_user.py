@@ -5,6 +5,7 @@ from keyboards import (
     groups_keyboard,
     start_keyboard,
     subgroups_keyboard,
+    video_action_keyboard,
     videos_keyboard,
 )
 from sheets_api import (
@@ -12,7 +13,9 @@ from sheets_api import (
     get_allowed_groups,
     get_subgroups_by_group,
     get_user_status,
+    get_videos_by_subgroup,
     upsert_user,
+    write_log,
 )
 
 router = Router()
@@ -161,3 +164,45 @@ async def debug_video_file_id(message: Message) -> None:
 
     file_id = message.video.file_id
     await message.answer(f"VIDEO_FILE_ID:\n{file_id}")
+
+
+@router.callback_query(F.data.startswith("video:"))
+async def cb_video(callback: CallbackQuery) -> None:
+    _, group_id, subgroup_id, video_id = callback.data.split(":", 3)
+
+    videos = get_videos_by_subgroup(subgroup_id).get("items", [])
+    video = next((v for v in videos if str(v.get("video_id")) == str(video_id)), None)
+
+    if not video:
+        await callback.answer("Відео не знайдено", show_alert=True)
+        return
+
+    file_id = str(video.get("telegram_file_id", "")).strip()
+    title = str(video.get("video_title", "Відео")).strip()
+    description = str(video.get("description", "")).strip()
+
+    if not file_id:
+        await callback.answer("У відео відсутній file_id", show_alert=True)
+        return
+
+    caption_parts = [f"🎬 {title}"]
+    if description:
+        caption_parts.append(description)
+
+    await callback.message.answer_video(
+        video=file_id,
+        caption="\n\n".join(caption_parts),
+        protect_content=True,
+        reply_markup=video_action_keyboard(group_id, subgroup_id, video_id)
+    )
+
+    write_log(
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username or "",
+        group_id=group_id,
+        subgroup_id=subgroup_id,
+        video_id=video_id,
+        action="opened"
+    )
+
+    await callback.answer()
